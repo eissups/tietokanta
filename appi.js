@@ -1,14 +1,16 @@
 const { Client } = require('pg');
-var prompt = require("prompt");
-var colors = require("colors/safe");
+const prompt = require("prompt");
+const colors = require("colors/safe");
 
-var userId = 0;
+var userId;
 var petId;
 var idCare;
-var nextCareId;
+var nextCareid;
 var ts = new Date();
 
-//luodaan Client
+/**
+ * Luodaan Client ja muodostetaan yhteys.
+ */
 var client = new Client({
     user: 'elisa',
     host: '192.168.1.224',
@@ -24,32 +26,36 @@ var client = new Client({
   .catch(err => console.error('connection error', err.stack))
 
 
-//kysytään käyttäjän id
+/**
+ * Kysytään käyttäjältä hänen id:tään
+ */
 function askId() {
     prompt.start();
     prompt.get({
     properties: {
       userId: {
-        description: colors.pink("What is your id?")
+        description: colors.green("What is your id?")
       }
     }
   }, function (err, result) {
-    console.log(colors.cyan("Pets : " + result.userId));
+    console.log(colors.green("Pets : " + result.userId));
     getYourPets(result.userId);
     userId = result.userId;
-    result.userId = "";
+    result.userId = 0;
   });
 }
 
 
-//Haetaan käytääjän lemmikit
+/** Haetaan käyttäjän lemmikit tietokannasta
+ * @param {Number} id 
+ */
 function getYourPets(id) {
     client.query('SELECT id_pet FROM user_owner WHERE id = ' + id, (err, res) => {
         if (!res.rows[0]) {
-            console.log(colors.bold(colors.blue("\nNo pets found with id " + "'" + id + "'" + ". Would you like to add a new pet?")));
+            console.log(colors.bold(colors.cyan("\nNo pets found with id " + "'" + id + "'" + ". Would you like to add a new pet?")));
             noPets();  
         } else {
-            console.log(colors.bold(colors.blue("\nYour pets: ")));
+            console.log(colors.bold(colors.cyan("\nYour pets: ")));
             console.table(res.rows);
             console.log("\n");
             showMain();
@@ -58,13 +64,14 @@ function getYourPets(id) {
 };
 
 
-//Jos ei löydy lemmikksejä
+/**Kysytään käyttäjältä, jolla ei ole lemmikkejä mitä haluaa tehdä. Vasta exit toimii.
+ */
 function noPets() {
   prompt.start();
   prompt.get({
   properties: {
     number: {
-      description: colors.pink("\n1) Add a new pet\n2) Search other pets\n3) Exit\n")
+      description: colors.green("\n1) Add a new pet\n2) Search other pets\n3) Exit\n")
     }
   }
 }, function (err, result) {
@@ -81,13 +88,15 @@ function noPets() {
 }
 
 
-// Mitä halutaan tehdä. Vasta 2-kohta toimii
+/**Kysytään mitä käyttäjä haluaa tehdä seuraavaksi. 
+ * Vasta "2) Update your pet's information"-kohta toimii ja sekin vain osittain. Ja exit
+ */
 function showMain() {
     prompt.start();
     prompt.get({
     properties: {
       number: {
-        description: colors.pink("\n1) Add a new pet\n2) Update your pet's information\n3) Search other pets\n4) Show my pet's id \n5) Exit\n")
+        description: colors.green("\n1) Add a new pet\n2) Update your pet's information\n3) Search other pets\n4) Show my pet's id \n5) Exit\n")
       }
     }
   }, function (err, result) {
@@ -101,23 +110,25 @@ function showMain() {
     if (result.number == 4) {getYourPets(userId)};
     if (result.number == 5) {
     client.end();
-    console.log(colors.bold(colors.blue("\nSee you soon!\n")));
+    console.log(colors.bold(colors.cyan("\nSee you soon!\n")));
     };
   });
 }
 
 
-//Pyydetään lemmikin id
+/**Väliaikaisesti pyydetään lemmikin id käyttäjältä.
+ * Myöhemmin muutetaan niin, että omat lemmikit vaihtoehtona
+ */
 function selectPet() {
   prompt.start();
   prompt.get({
   properties: {
     idPet: {
-      description: colors.pink("What is your pet's id?")
+      description: colors.green("What is your pet's id?")
     }
   }
 }, function (err, result) {
-  console.log(colors.cyan("Pets : " + result.idPet));
+  console.log(colors.green("Pets : " + result.idPet));
   getDetails(result.idPet);
   petId = result.idPet;
   result.idPet = "";
@@ -125,14 +136,16 @@ function selectPet() {
 }
 
 
-//Näytetään lemmikin lisätiedot
+/**Haetaan lemmikin kaikki tiedot käyttäjälle
+ * @param {Number} id lemmikin id
+ */
 function getDetails(id) {
   client.query('SELECT id, name, born, dead, gender, species FROM pet WHERE id = ' + id, (err, res) => {
       if (!res) {
-          console.log(colors.bold(colors.blue("\nNo pets found with id " + "'" + id + "'")));
+          console.log(colors.bold(colors.cyan("\nNo pets found with id " + "'" + id + "'")));
           noPets();  
       } else {
-          console.log(colors.bold(colors.blue("\nYour pet's basic details: ")));
+          console.log(colors.bold(colors.cyan("\nYour pet's basic details: ")));
           console.table(res.rows);
           console.log("\n");
           whatToDo();
@@ -141,99 +154,14 @@ function getDetails(id) {
 };
 
 
-//lisätään ateria
-function addMeal() {
-  prompt.start();
-  prompt.get({
-  properties: {
-    food: {
-      description: colors.pink("Give food.")
-    },
-    grams: {
-      description: colors.pink("Give grams. Only numbers allowed!")
-    }    
-  }
-}, function (err, result) {
-  console.log(colors.cyan(result.food + ": " +result.grams  +" g"  ));
-  idCare = isThereCare();
-  mealToDataBase(result.food, result.grams, idCare);
-  result.food = "";
-  result.grams = "";
-});
-}
-
-
-//Onko sopivaa care_id:tä
-function isThereCare() {
-  client.query('SELECT id FROM care WHERE id_pet = ' + petId + 'AND date = ' + ts, (err, res) => {
-    if (!res) {
-        console.log(colors.bold(colors.blue(err + "\nDidn't work ")));
-        maxCareId = getMaxCareId();
-        newCare(nextCareId);  
-    } else {
-        console.log(colors.bold(colors.blue("\nnew care")));
-        console.table(res.rows);
-        console.log("\n");
-        idCare = res.id; 
-    }
-})
-}
-
-//Haetaan maksimiId
-function getMaxCareId() {
-
-  client.query('SELECT MAX(id) FROM care' , (err, res) => {
-    if (!res) {
-        console.log(colors.bold(colors.blue(err + "\nDidn't work ")));
-        showMain();
-    } else {
-        console.log(colors.bold(colors.blue("\nSuurin käytetty id on " + res.rows[0].max)));
-        console.table(res.rows);
-        console.log("\n");
-        maxCareId = res.rows[0].max; 
-        nextCareId = res.rows[0].max + 1;
-    }
-})
-}
-
-
-// Lisätään uusi careid
-function newCare(id) {
-  console.log(' tulostetaan ' + nextCareId);
-  client.query('INSERT INTO care (id, id_pet, date) VALUES ($1, $2, $3)', [nextCareId, petId, ts], (err, res) => {
-    if (!res) {
-        console.log(colors.bold(colors.blue(err + 'caren lisäämisessä')));
-        showMain();
-    } else {
-    console.log(colors.bold(colors.blue("\nNew care added: " + idCare + "\n")));
-    whatToDo();
-    }
-})
-
-}
-
-//lisätään ateria tietokantaan
-function mealToDataBase(food, grams) {
-  client.query('INSERT INTO meals (id_care, time, food, g) VALUES ($1, $2, $3, $4)', [idCare, ts, food,, grams], (err, res) => {
-    if (!res) {
-        console.log(colors.bold(colors.blue(err)));
-        showMain();
-    } else {
-    console.log(colors.bold(colors.blue("\nNew meal added " + food + " " + grams + " g" + "\n")));
-    showMain();
-    }
-})
-
-}
-
-
-//mitä tehdään
+/**Kysytään käyttäjältä mitä halutaan tehdä. Vasta "1) Add meal"-kohta toimii.
+ */ 
 function whatToDo() {
   prompt.start();
   prompt.get({
   properties: {
     number: {
-      description: colors.pink("\n1) Add meal\n2) Add activity\n3) Add results\n3) Add note to health\n4) Backt\n")
+      description: colors.green("\n1) Add meal\n2) Add activity\n3) Add results\n3) Add note to health\n4) Backt\n")
     }
   }
 }, function (err, result) {
@@ -251,8 +179,121 @@ function whatToDo() {
   ;   
   if (result.number == 4) {
   client.end();
-  console.log(colors.bold(colors.blue("\nSee you soon!\n")));
+  console.log(colors.bold(colors.cyan("\nSee you soon!\n")));
   };
 });
 }
 
+
+/**Pyydetään käyttäjältä ruuan numu ja määrä grammoina lisäystä varten
+ */
+function addMeal() {
+  prompt.start();
+  prompt.get({
+  properties: {
+    food: {
+      description: colors.green("Give food.")
+    },
+    grams: {
+      description: colors.green("Give grams. Only numbers allowed!")
+    }    
+  }
+}, function (err, result) {
+  console.log(colors.green(result.food + ": " +result.grams  +" g"  ));
+  let careBool = isThereCare();
+  if (careBool != true) {
+    getnextCareid(result.food, result.grams, idCare);
+  }
+  else {
+    mealToDataBase(result.food, result.grams, idCare);
+  }
+  result.food = "";
+  result.grams = "";
+});
+}
+
+
+/**Ei toimi vielä, joten tässä vaiheessa turha, koska antaa aina virheen
+ * Tulevaisuudessa testataan löytyykö tietokannasta id:tä tietylle päivälle
+ * ja lemmikille vai lisätäänkö uusi
+ */
+function isThereCare() {
+  j = parseInt(petId);
+  client.query('SELECT id, id_pet, date FROM care WHERE id_pet = ' + petId + 'AND date = ' + ts, (err, res) => {
+    if (!res) {
+        console.log(colors.bold(colors.cyan(err + "\nDidnt find care id")));
+        return false;
+    } else {
+        console.log(colors.bold(colors.cyan("\nCare found")));
+        console.table(res.rows);
+        console.log("\n");
+        idCare = res.id; 
+        return true;
+    }
+})
+}
+
+
+/**Väliaikainen ratkaisu
+ * Etsitään suurin käytetty id ja otetaan sitä suurempi seuraavaan
+ * @param {String} food ruoka ohikulkumatkalle meal:n lisäystä varten
+ * @param {Number} grams määrä ohikulkumatkalle meal:n lisäystä varten
+ */
+function getnextCareid(food, grams) {
+ 
+  client.query('SELECT MAX(id) FROM care' , (err, res) => {
+    if (!res) {
+        console.log(colors.bold(colors.cyan(err + "\nDidn't work ")));
+        showMain();
+    }
+    else {
+        console.log(colors.bold(colors.cyan("\nSuurin käytetty id on " + res.rows[0].max)))
+        console.table(res.rows);
+        console.log("\n");
+        maxCareId = res.rows[0].max; 
+        nextCareid = res.rows[0].max + 1;
+        newCare(food, grams); 
+        return;
+    }
+ })
+}
+
+
+/**Lisätään uusi aika-lemmikki yhdistelmä
+ * @param {String} food ruoka menossa lisäykseen
+ * @param {Number} rgrams grammat menossa lisäykseen
+ */
+function newCare(food, rgrams) {
+  const query = {
+    text: 'INSERT INTO care (id, id_pet, date) VALUES ($1, $2, $3)',
+    values: [nextCareid, petId, ts],
+  }
+    client.query(query, (err, res) => {
+      if (!res) {
+          console.log(colors.bold(colors.cyan(err + 'caren lisäämisessä, id: ' + nextCareid + ' ' + petId)));
+          showMain();
+      } else {
+      idCare = nextCareid;
+      mealToDataBase(food, rgrams);
+      console.log(colors.bold(colors.cyan("\nNew care added: " + idCare + "\n")));
+      return;
+      }
+    })
+}
+
+
+/**Lisätään meal
+ * @param {String} food food ruoka joka lisätään
+ * @param {*} grams määrä grammoina
+ */
+function mealToDataBase(food, grams) {
+  client.query('INSERT INTO meals (id_care, time, food, g) VALUES ($1, $2, $3, $4)', [idCare, ts, food, grams], (err, res) => {
+    if (!res) {
+        console.log(err);
+        showMain();
+    } else {
+    console.log(colors.bold(colors.cyan("\nNew meal added " + food + " " + grams + " g" + "\n")));
+    showMain();
+    }
+})
+}
