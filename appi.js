@@ -1,6 +1,7 @@
 const { Client } = require('pg');
 const prompt = require("prompt");
 const colors = require("colors/safe");
+const { time } = require('console');
 
 var userId;
 var petId;
@@ -202,14 +203,39 @@ function addMeal() {
   console.log(colors.green(result.food + ": " +result.grams  +" g"  ));
   let careBool = isThereCare();
   if (careBool != true) {
-    getnextCareid(result.food, result.grams, idCare);
+    getnextCareid("food", result.food, result.grams);
   }
   else {
-    mealToDataBase(result.food, result.grams, idCare);
+    mealToDataBase(result.food, result.grams);
   }
   result.food = "";
   result.grams = "";
 });
+}
+
+function addActivity() {
+  prompt.start();
+  prompt.get({
+    properties: {
+      activity: {
+        description: colors.green("Give activity.")
+      },
+      time: {
+        description: colors.green("Give time: HH:MM XM ")
+      }    
+    }
+  }, function(err, result) {
+    console.log(colors.green(result.time + ": " +result.activity  +""  ));
+  let careBool = isThereCare();
+  if (careBool != true) {
+    getnextCareid("activity", result.time, result.activity);
+  }
+  else {
+    activityToDataBase(result.time, result.activity);
+  }
+  result.activity = "";
+  result.time = "";
+  });
 }
 
 
@@ -239,7 +265,7 @@ function isThereCare() {
  * @param {String} food ruoka ohikulkumatkalle meal:n lisäystä varten
  * @param {Number} grams määrä ohikulkumatkalle meal:n lisäystä varten
  */
-function getnextCareid(food, grams) {
+function getnextCareid(careType, x, y) {
  
   client.query('SELECT MAX(id) FROM care' , (err, res) => {
     if (!res) {
@@ -252,7 +278,7 @@ function getnextCareid(food, grams) {
         console.log("\n");
         maxCareId = res.rows[0].max; 
         nextCareid = res.rows[0].max + 1;
-        newCare(food, grams); 
+        newCare(careType, x, y); 
         return;
     }
  })
@@ -263,7 +289,7 @@ function getnextCareid(food, grams) {
  * @param {String} food ruoka menossa lisäykseen
  * @param {Number} rgrams grammat menossa lisäykseen
  */
-function newCare(food, rgrams) {
+function newCare(careType, x, y) {
   const query = {
     text: 'INSERT INTO care (id, id_pet, date) VALUES ($1, $2, $3)',
     values: [nextCareid, petId, ts],
@@ -274,7 +300,14 @@ function newCare(food, rgrams) {
           showMain();
       } else {
       idCare = nextCareid;
-      mealToDataBase(food, rgrams);
+      if (careType == "food") {
+        mealToDataBase(x, y);
+      }
+      else if (careType == "activity") {
+
+        activityToDataBase(x, y)
+      }
+      
       console.log(colors.bold(colors.cyan("\nNew care added: " + idCare + "\n")));
       return;
       }
@@ -292,8 +325,23 @@ function mealToDataBase(food, grams) {
         console.log(err);
         showMain();
     } else {
-    console.log(colors.bold(colors.cyan("\nNew meal added " + food + " " + grams + " g" + "\n")));
+    console.log(colors.bold(colors.cyan("\nNew meal added: " + food + " " + grams + "\n")));
     showMain();
     }
 })
+}
+
+
+function activityToDataBase(time, activity) {
+  client.query('INSERT INTO activity (id_care,  activity_name, time) VALUES ($1, $2, $3)', [idCare, activity, time], (err, res) => {
+    if (!res) {  
+        console.log(err);
+        showMain();
+    } else {
+    console.log(colors.bold(colors.cyan("\nNew activity added: " + time + " " + activity + " g" + "\n")));
+    showMain();
+    }
+})
+
+
 }
