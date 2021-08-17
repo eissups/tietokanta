@@ -77,7 +77,7 @@ function noPets() {
   }
 }, function (err, result) {
   if (result.number == 1) {
-    addNewPet()
+    addPet()
   };
   if (result.number == 2) {
     Search()
@@ -114,6 +114,92 @@ function showMain() {
     console.log(colors.bold(colors.cyan("\nSee you soon!\n")));
     };
   });
+}
+
+
+/**
+ * Kysytään käyttäjältä uuden lemmikin lisäämiseen tarvittavat tiedot
+ */
+function addPet() {
+  prompt.start();
+  prompt.get( {
+    properties: {
+      name: {
+        description: colors.green("Pet's name")
+      },
+      born: {
+        description: colors.green("Date of birth (dd/mm/yyyy)")
+      },
+      dead: {
+        description: colors.grey("Date of death (optinal) 'dd/mm/yyyy'")
+      },
+      gender: {
+        description: colors.green("Gender ")
+      },
+      species: {
+        description: colors.green("What kind of pet? (Dog, cat, pig, rabbit)")
+      }
+    }
+  }, function(err, result) {
+
+    let dead = result.dead;
+    if (dead == "") {
+      dead = null;
+    }
+    nextPetId(result.name, result.born, dead, result.gender, result.species);
+  }
+  )
+}
+
+
+/**
+ * Otetaan seuraava vapaana oleva id lisättävän lemmikin id:ksi
+ * @param {*} name 
+ * @param {*} born 
+ * @param {*} dead 
+ * @param {*} gender 
+ * @param {*} species 
+ */
+function nextPetId(name, born, dead, gender, species) {
+
+  client.query('SELECT MAX(id) FROM pet' , (err, res) => {
+    if (!res) {
+        console.log(colors.bold(colors.cyan(err + "\nCould not get max pet id")));
+        showMain();
+    }
+    else {
+        console.log(colors.bold(colors.cyan("\nMAX pet id is: " + res.rows[0].max)))
+        console.log(colors.bold(colors.cyan("\nNext pet id is: " + res.rows[0].max + 1)))
+        console.table(res.rows);
+        console.log("\n");    
+        let nextid = res.rows[0].max + 1;
+        petToDataBase(nextid, name, born, dead, gender, species);
+        return;
+    }
+ })
+}
+
+
+/**
+ * Lisätään lemmikki tietokantaan
+ * @param {*} id 
+ * @param {*} name 
+ * @param {*} born 
+ * @param {*} dead 
+ * @param {*} gender 
+ * @param {*} species 
+ */
+function petToDataBase(id,name, born, dead, gender, species) {
+  client.query('INSERT INTO pet (id, name, born, dead, gender, species) VALUES ($1, $2, $3, $4, $5, $6)', [id, name, born, dead, gender, species], (err, res) => {
+    if (!res) {  
+      console.log(err);
+      showMain();
+    } 
+    else {
+      console.log(colors.bold(colors.cyan("\nNew " + species + " added: \n")) + colors.yellow("Id: " + id + ",\nName: " + name + ",\nDate of birth: " + born + ",\nDate of death: " + dead + ",\nGender: " + gender + "\n"));
+      showMain();
+  }
+  })
 }
 
 
@@ -162,7 +248,7 @@ function whatToDo() {
   prompt.get({
   properties: {
     number: {
-      description: colors.green("\n1) Add meal\n2) Add activity\n3) Add results\n3) Add note to health\n4) Backt\n")
+      description: colors.green("\n1) Add meal\n2) Add activity\n3) Add results\n3) Add note to health\n4) Back\n")
     }
   }
 }, function (err, result) {
