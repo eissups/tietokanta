@@ -155,7 +155,7 @@ function getDetails(id) {
 };
 
 
-/**Kysytään käyttäjältä mitä halutaan tehdä. Vasta "1) Add meal"-kohta toimii.
+/**Kysytään käyttäjältä mitä halutaan tehdä. Vasta 1) Add meal"ja 2) Add activity toimii.
  */ 
 function whatToDo() {
   prompt.start();
@@ -179,8 +179,7 @@ function whatToDo() {
     addHealth()}
   ;   
   if (result.number == 4) {
-  client.end();
-  console.log(colors.bold(colors.cyan("\nSee you soon!\n")));
+  showMain();
   };
 });
 }
@@ -352,3 +351,5 @@ function activityToDataBase(time, activity) {
     }
 })
 }
+
+
