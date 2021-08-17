@@ -186,7 +186,7 @@ function whatToDo() {
 }
 
 
-/**Pyydetään käyttäjältä ruuan numu ja määrä grammoina lisäystä varten
+/**Pyydetään käyttäjältä ruuan nimi ja määrä grammoina lisäystä varten
  */
 function addMeal() {
   prompt.start();
@@ -213,6 +213,10 @@ function addMeal() {
 });
 }
 
+
+/**
+ * Pyydetään käyttäjältä activity ja aika lisäystä varten
+ */
 function addActivity() {
   prompt.start();
   prompt.get({
@@ -332,16 +336,19 @@ function mealToDataBase(food, grams) {
 }
 
 
+/**
+ * Activityn lisääminen tietokantaan
+ * @param {*} time kellonaika
+ * @param {*} activity toiminta jota tehty
+ */
 function activityToDataBase(time, activity) {
   client.query('INSERT INTO activity (id_care,  activity_name, time) VALUES ($1, $2, $3)', [idCare, activity, time], (err, res) => {
     if (!res) {  
         console.log(err);
         showMain();
     } else {
-    console.log(colors.bold(colors.cyan("\nNew activity added: " + time + " " + activity + " g" + "\n")));
+    console.log(colors.bold(colors.cyan("\nNew activity added: " + time + " " + activity + "\n")));
     showMain();
     }
 })
-
-
 }
