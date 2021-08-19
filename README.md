@@ -1,4 +1,4 @@
 # tietokanta
 
 Pahasti kesken.
-Mutta tarkoituksena, että toimisi niin, että voi lisätä lemmikkejä ja niille erilaisia tietoja.
+Tarkoituksena komentoriviltä käytettävä "interaktiivinen" ohjelma, jossa voidaan lisätä lemmikkejä ja niille erilaisia tietoja.
